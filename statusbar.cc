@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <memory>
 #include <cassert>
+#include <ctime>
 
 class Widget {
  public:
@@ -35,6 +36,13 @@ class WidgetManager {
    void unsubscribe(const Widget* w) {
       mWidgets.erase(std::find(mWidgets.begin(), mWidgets.end(), w)); 
    }
+   void run() const {
+      while (true) {
+         updateStatusbar();
+         sleep(2);
+      }
+   }
+ private:
    void updateStatusbar() const {
       std::string statusbar("");
       for (tWidgetIter itr=mWidgets.begin(); itr!=mWidgets.end(); ++itr) {
@@ -44,7 +52,7 @@ class WidgetManager {
       XStoreName(mDisplay, DefaultRootWindow(mDisplay), statusbar.c_str());
       XSync(mDisplay, 0);
    }
- private:
+
    typedef std::vector<const Widget*>::const_iterator tWidgetIter;
    std::vector<const Widget*> mWidgets;
    Display* mDisplay;
@@ -62,11 +70,13 @@ class TimeWidget: public Widget {
  public:
    TimeWidget() : Widget() {}
    virtual std::string getStatusbarOutput() const {
-      return "TimeWdiget";
+      time_t time_since_epoch;
+      time(&time_since_epoch);
+      return ctime(&time_since_epoch);
    }
 };
 
 int main(void){
    Widget* w = new TimeWidget();
-   gWidgetManager->updateStatusbar();
+   gWidgetManager->run();
 }
