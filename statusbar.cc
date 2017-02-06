@@ -20,9 +20,7 @@ class Widget {
 
 class WidgetManager {
  public:
-   WidgetManager() {
-      mDisplay = XOpenDisplay(0x0);
-   }
+   WidgetManager(const WidgetManager&) =delete;
    ~WidgetManager() {
       assert(mDisplay);
       XCloseDisplay(mDisplay);
@@ -30,40 +28,48 @@ class WidgetManager {
          delete *mWidgets.begin();
       }
    }
+   static WidgetManager& instance() {
+      static WidgetManager mWidgetManager;
+      return mWidgetManager;
+   }
    void subscribe(const Widget* w) { 
       mWidgets.push_back(w); 
    }
    void unsubscribe(const Widget* w) {
       mWidgets.erase(std::find(mWidgets.begin(), mWidgets.end(), w)); 
    }
-   void run() const {
+   void run(int refresh_rate=1) const {
       while (true) {
          updateStatusbar();
-         sleep(2);
+         sleep(refresh_rate);
       }
    }
  private:
+   WidgetManager() {
+      mDisplay = XOpenDisplay(0x0);
+   }
    void updateStatusbar() const {
-      std::string statusbar("");
-      for (tWidgetIter itr=mWidgets.begin(); itr!=mWidgets.end(); ++itr) {
+      static std::string statusbar("");
+      statusbar.clear();
+      for (constWidgetIter itr=mWidgets.begin(); itr!=mWidgets.end(); ++itr) {
          statusbar += " " + (*itr)->getStatusbarOutput();
       }
+      statusbar.erase(std::remove(statusbar.begin(), statusbar.end(), '\n'), statusbar.end());
       assert(mDisplay);
       XStoreName(mDisplay, DefaultRootWindow(mDisplay), statusbar.c_str());
       XSync(mDisplay, 0);
    }
 
-   typedef std::vector<const Widget*>::const_iterator tWidgetIter;
+   using constWidgetIter = std::vector<const Widget*>::const_iterator;
    std::vector<const Widget*> mWidgets;
    Display* mDisplay;
 };
-std::auto_ptr<WidgetManager> gWidgetManager(new WidgetManager);
 
 Widget::Widget() {
-   gWidgetManager->subscribe(this); 
+   WidgetManager::instance().subscribe(this); 
 }
 Widget::~Widget() {
-   gWidgetManager->unsubscribe(this); 
+   WidgetManager::instance().unsubscribe(this); 
 }
 
 class TimeWidget: public Widget {
@@ -77,6 +83,7 @@ class TimeWidget: public Widget {
 };
 
 int main(void){
-   Widget* w = new TimeWidget();
-   gWidgetManager->run();
+   new TimeWidget();
+   WidgetManager::instance().run();
+   return 0;
 }
