@@ -3,12 +3,10 @@
 
 #include <X11/Xlib.h>
 #include <unistd.h>
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <memory>
 #include <cassert>
 #include <ctime>
 
@@ -17,7 +15,7 @@ class Widget {
    Widget();
    Widget(const Widget&) =delete;
    Widget& operator=(const Widget&) =delete;
-   ~Widget();
+   virtual ~Widget();
    virtual std::string getStatusbarOutput() const =0;
 };
 
@@ -117,13 +115,15 @@ class CpuUtilWidget: Widget {
 
       std::vector<size_t> parsed_cpu_times;
       for (size_t time; cpu_time_file >> time; parsed_cpu_times.push_back(time));
+      cpu_time_file.close();
       assert(parsed_cpu_times.size()>4);
+
       idle_time = parsed_cpu_times[3];
       total_time = std::accumulate(parsed_cpu_times.begin(), parsed_cpu_times.end(), 0);
    }
 };
 
-int main(void){
+int main(void) {
    new CpuUtilWidget();
    new TimeWidget();
    WidgetManager::instance().run();
