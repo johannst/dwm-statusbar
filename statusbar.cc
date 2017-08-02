@@ -16,7 +16,7 @@ class Widget {
    Widget(const Widget&) =delete;
    Widget& operator=(const Widget&) =delete;
    virtual ~Widget();
-   virtual std::string getStatusbarOutput() const =0;
+   virtual std::string getStatusbarOutput() =0;
 };
 
 class WidgetManager {
@@ -34,13 +34,13 @@ class WidgetManager {
       static WidgetManager mWidgetManager;
       return mWidgetManager;
    }
-   void subscribe(const Widget* w) {
+   void subscribe(Widget* w) {
       mWidgets.push_back(w);
    }
-   void unsubscribe(const Widget* w) {
+   void unsubscribe(Widget* w) {
       mWidgets.erase(std::find(mWidgets.begin(), mWidgets.end(), w));
    }
-   void run(int refresh_rate=1) const {
+   void run(int refresh_rate=1) {
       while (true) {
          updateStatusbar();
          sleep(refresh_rate);
@@ -50,7 +50,7 @@ class WidgetManager {
    WidgetManager() {
       mDisplay = XOpenDisplay(0x0);
    }
-   void updateStatusbar() const {
+   void updateStatusbar() {
       static std::string statusbar("");
       statusbar.clear();
       for (constWidgetIter itr=mWidgets.begin(); itr!=mWidgets.end(); ++itr) {
@@ -62,8 +62,8 @@ class WidgetManager {
       XSync(mDisplay, 0);
    }
 
-   using constWidgetIter = std::vector<const Widget*>::const_iterator;
-   std::vector<const Widget*> mWidgets;
+   using constWidgetIter = std::vector<Widget*>::const_iterator;
+   std::vector<Widget*> mWidgets;
    Display* mDisplay;
 };
 
@@ -77,7 +77,7 @@ Widget::~Widget() {
 class TimeWidget: public Widget {
  public:
    TimeWidget() : Widget() {}
-   virtual std::string getStatusbarOutput() const {
+   virtual std::string getStatusbarOutput() {
       time_t time_since_epoch;
       time(&time_since_epoch);
       return ctime(&time_since_epoch);
@@ -87,14 +87,14 @@ class TimeWidget: public Widget {
 class CpuUtilWidget: Widget {
  public:
    CpuUtilWidget() : Widget(), mLastIdleTime(0), mLastTotalTime(0) {}
-   virtual std::string getStatusbarOutput() const {
+   virtual std::string getStatusbarOutput() {
       return std::to_string(calculateCpuUtilization()) + "%";
    }
  private:
-   mutable size_t mLastIdleTime;
-   mutable size_t mLastTotalTime;
+   size_t mLastIdleTime;
+   size_t mLastTotalTime;
 
-   size_t calculateCpuUtilization() const {
+   size_t calculateCpuUtilization() {
       size_t idle_time=0;
       size_t total_time=0;
       parseCpuTimes(idle_time, total_time);
